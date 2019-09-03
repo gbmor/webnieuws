@@ -3,9 +3,14 @@
 // See LICENSE file for detailed license information.
 //
 
+#[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
+extern crate may;
+
 use ctrlc;
 use log;
-use may::go;
 
 use std::net::TcpListener;
 use std::sync::{Arc, Mutex};

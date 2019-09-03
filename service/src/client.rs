@@ -3,12 +3,18 @@
 // See LICENSE file for detailed license information.
 //
 
+use std::collections::HashMap;
 use std::io::Write;
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 use crate::db;
+
 use rusqlite;
+
+lazy_static! {
+    static ref CACHE: Arc<RwLock<HashMap<String, String>>> = Arc::new(RwLock::new(HashMap::new()));
+}
 
 pub fn handle(strm: &mut TcpStream, db: Arc<Mutex<db::Conn>>) -> rusqlite::Result<()> {
     let db = db.lock().unwrap();
