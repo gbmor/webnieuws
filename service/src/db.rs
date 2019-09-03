@@ -73,3 +73,14 @@ impl Conn {
         Conn { conn }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_open_db() {
+        let db = Conn::open("/tmp/test.db");
+        db.conn.prepare("SELECT * FROM posts").unwrap();
+    }
+}

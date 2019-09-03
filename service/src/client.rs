@@ -55,3 +55,25 @@ fn str_to_json(data: Vec<Vec<String>>) -> String {
         )
     }).collect::<Vec<String>>().join("").into()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_str_to_json() {
+        let lhs = format!("{{ \"author\": \"test\", \"title\": \"test\", \"body\": \"test\", \"date\": \"test\", \"tags\": \"test\" }}");
+
+        let rhs: Vec<String> = vec![
+            "test".into(),
+            "test".into(),
+            "test".into(),
+            "test".into(),
+            "test".into(),
+        ];
+        let rhs = vec![rhs];
+        let rhs = str_to_json(rhs);
+
+        assert_eq!(lhs, rhs);
+    }
+}
