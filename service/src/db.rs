@@ -3,10 +3,12 @@
 // See LICENSE file for detailed license information.
 //
 
+use log;
 use rusqlite;
-use serde;
+use serde::ser::{Serialize, SerializeStruct, Serializer};
+use std::time;
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone)]
 struct Entry {
     id: u32,
     author: String,
@@ -16,16 +18,32 @@ struct Entry {
     tags: Vec<String>,
 }
 
-struct Conn {
-    conn: rusqlite::Connection,
+impl Serialize for Entry {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut s = serializer.serialize_struct("Entry", 6)?;
+        s.serialize_field("id", &self.id)?;
+        s.serialize_field("author", &self.author)?;
+        s.serialize_field("title", &self.title)?;
+        s.serialize_field("body", &self.body)?;
+        s.serialize_field("date", &self.date)?;
+        s.serialize_field("tags", &self.tags)?;
+        s.end()
+    }
 }
 
-const PATH: &str = "webnieuws.db";
+pub struct Conn {
+    pub conn: rusqlite::Connection,
+}
+
+pub const PATH: &str = "webnieuws.db";
 
 impl Conn {
-    fn open(path: &str) -> Self {
+    pub fn open(path: &str) -> Self {
         let start = time::Instant::now();
-        info!("Connecting to database");
+        log::info!("Connecting to database");
         let conn = rusqlite::Connection::open_with_flags(
             path,
             rusqlite::OpenFlags::SQLITE_OPEN_FULL_MUTEX
@@ -47,7 +65,7 @@ impl Conn {
         )
         .expect("Could not initialize DB");
 
-        info!(
+        log::info!(
             "Database connection established in {}ms",
             start.elapsed().as_millis()
         );
