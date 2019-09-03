@@ -8,6 +8,7 @@ use log;
 use may::go;
 
 use std::net::TcpListener;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 mod client;
@@ -31,8 +32,8 @@ fn main() {
     // This will loop, ensuring if the thread dies it's
     // immediately respawned.
     loop {
-        thread::spawn(|| {
-            let _db = db::Conn::open(db::PATH);
+        thread::spawn(move || {
+            let db = Arc::new(Mutex::new(db::Conn::open(db::PATH)));
             log::info!("Database connection opened: {}", db::PATH);
 
             let lstnr = TcpListener::bind(LSTN_ADDR).unwrap();
@@ -40,9 +41,10 @@ fn main() {
 
             for strm in lstnr.incoming() {
                 match strm {
-                    Ok(stream) => {
+                    Ok(mut stream) => {
                         log::info!("New connection: {:?}", stream);
-                        go!(move || client::handle(&stream));
+                        let db = db.clone();
+                        go!(move || client::handle(&mut stream, db));
                     }
                     Err(err) => log::error!("{:?}", err),
                 }

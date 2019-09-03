@@ -33,7 +33,7 @@ impl Serialize for Entry {
         s.end()
     }
 }
-
+#[derive(Debug)]
 pub struct Conn {
     pub conn: rusqlite::Connection,
 }
