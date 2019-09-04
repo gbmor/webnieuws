@@ -21,7 +21,13 @@ pub fn handle(strm: &mut TcpStream) -> rusqlite::Result<()> {
 
     let posts = str_to_json(posts).bytes().collect::<Vec<u8>>();
 
-    strm.write_all(&posts).unwrap();
+    let posts_displayed = if posts.len() < 10 {
+        &posts
+    } else {
+        &posts[posts.len() - 10..]
+    };
+
+    strm.write_all(&posts_displayed).unwrap();
 
     Ok(())
 }
