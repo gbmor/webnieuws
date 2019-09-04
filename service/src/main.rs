@@ -45,6 +45,8 @@ fn main() {
                 match strm {
                     Ok(mut stream) => {
                         log::info!("New connection: {:?}", stream);
+                        // Spawn a may::coroutine and immediately go back to
+                        // waiting for more connections.
                         go!(move || client::handle(&mut stream));
                     }
                     Err(err) => log::error!("{:?}", err),
