@@ -27,16 +27,28 @@ fn main() {
 
     // Handles SIGINT signals.
     // More will have to be done here later.
-    ctrlc::set_handler(|| {
+    match ctrlc::set_handler(|| {
         log::warn!("^C/SIGINT Caught ... ");
         std::process::exit(0);
-    })
-    .expect("Failed to set up SIGINT handler");
+    }) {
+        Ok(_) => {}
+        Err(err) => {
+            log::error!("Failed to set up SIGINT handler: {:?}", err);
+            std::process::exit(1);
+        }
+    }
 
     // Next we'll asynchronously handle incoming requests.
     log::info!("Starting up ...");
 
-    let lstnr = TcpListener::bind(&LSTN_ADDR).unwrap();
+    let lstnr = match TcpListener::bind(&LSTN_ADDR) {
+        Ok(val) => val,
+        Err(err) => {
+            log::error!("Failed to open TCP socket: {:?}", err);
+            std::process::exit(1);
+        }
+    };
+
     let srvr = lstnr
         .incoming()
         .for_each(|mut strm| {
