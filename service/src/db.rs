@@ -85,10 +85,24 @@ impl Conn {
 pub fn load_cache() {
     let start = std::time::Instant::now();
     log::info!("Loading cache of posts...");
-    let db = CONNECTION.lock().unwrap();
+
+    let db = match CONNECTION.lock() {
+        Ok(val) => val,
+        Err(err) => {
+            log::error!("{:?}", err);
+            return;
+        }
+    };
     let db = &*db;
+
     let stmt = format!("SELECT * FROM posts");
-    let mut stmt = db.conn.prepare(&stmt).unwrap();
+    let mut stmt = match db.conn.prepare(&stmt) {
+        Ok(val) => val,
+        Err(err) => {
+            log::error!("{:?}", err);
+            return;
+        }
+    };
 
     let posts = stmt
         .query_map(rusqlite::NO_PARAMS, |r| {
@@ -110,7 +124,14 @@ pub fn load_cache() {
         .map(|r| r.unwrap())
         .collect::<Vec<Vec<String>>>();
 
-    let mut cache = CACHE.write().unwrap();
+    let mut cache = match CACHE.write() {
+        Ok(val) => val,
+        Err(err) => {
+            log::error!("{:?}", err);
+            return;
+        }
+    };
+
     posts.iter().for_each(|post| {
         (*cache).entry(post[3].clone()).or_insert(post.clone());
     });
