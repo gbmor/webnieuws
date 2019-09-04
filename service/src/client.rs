@@ -4,13 +4,11 @@
 //
 
 use std::io::Write;
-use std::net::TcpStream;
+use tokio::net::TcpStream;
 
 use crate::db;
 
-use rusqlite;
-
-pub fn handle(strm: &mut TcpStream) -> rusqlite::Result<()> {
+pub fn handle(strm: &mut TcpStream) {
     let cache = db::CACHE.read().unwrap();
 
     let mut posts = Vec::new();
@@ -28,8 +26,6 @@ pub fn handle(strm: &mut TcpStream) -> rusqlite::Result<()> {
     };
 
     strm.write_all(&posts_displayed).unwrap();
-
-    Ok(())
 }
 
 fn str_to_json(data: Vec<Vec<String>>) -> String {

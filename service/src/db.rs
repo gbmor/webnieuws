@@ -112,10 +112,7 @@ pub fn load_cache() {
 
     let mut cache = CACHE.write().unwrap();
     posts.iter().for_each(|post| {
-        if (*cache).contains_key(&post[3]) {
-            (*cache).remove(&post[3]).unwrap();
-        }
-        (*cache).insert(post[3].clone(), post.clone());
+        (*cache).entry(post[3].clone()).or_insert(post.clone());
     });
 
     log::info!(
