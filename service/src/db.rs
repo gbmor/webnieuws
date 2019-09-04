@@ -6,6 +6,8 @@
 use log;
 use rusqlite;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex, RwLock};
 use std::time;
 
 #[derive(Debug, Clone)]
@@ -40,6 +42,12 @@ pub struct Conn {
 
 pub const PATH: &str = "webnieuws.db";
 
+lazy_static! {
+    pub static ref CONNECTION: Arc<Mutex<Conn>> = Arc::new(Mutex::new(Conn::open(PATH)));
+    pub static ref CACHE: Arc<RwLock<BTreeMap<String, Vec<String>>>> =
+        Arc::new(RwLock::new(BTreeMap::new()));
+}
+
 impl Conn {
     pub fn open(path: &str) -> Self {
         let start = time::Instant::now();
@@ -72,6 +80,48 @@ impl Conn {
 
         Conn { conn }
     }
+}
+
+pub fn load_cache() {
+    let start = std::time::Instant::now();
+    log::info!("Loading cache of posts...");
+    let db = CONNECTION.lock().unwrap();
+    let db = &*db;
+    let stmt = format!("SELECT * FROM posts");
+    let mut stmt = db.conn.prepare(&stmt).unwrap();
+
+    let posts = stmt
+        .query_map(rusqlite::NO_PARAMS, |r| {
+            let auth: String = r.get(1)?;
+            let title: String = r.get(2)?;
+            let body: String = r.get(3)?;
+            let date: String = r.get(4)?;
+            let tags: String = r.get(5)?;
+
+            Ok(vec![
+                auth.into(),
+                title.into(),
+                body.into(),
+                date.into(),
+                tags.into(),
+            ])
+        })
+        .unwrap()
+        .map(|r| r.unwrap())
+        .collect::<Vec<Vec<String>>>();
+
+    let mut cache = CACHE.write().unwrap();
+    posts.iter().for_each(|post| {
+        if (*cache).contains_key(&post[3]) {
+            (*cache).remove(&post[3]).unwrap();
+        }
+        (*cache).insert(post[3].clone(), post.clone());
+    });
+
+    log::info!(
+        "Cache loaded. Elapsed time: {} ms",
+        start.elapsed().as_millis()
+    );
 }
 
 #[cfg(test)]

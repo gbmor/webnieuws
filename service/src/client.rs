@@ -3,43 +3,22 @@
 // See LICENSE file for detailed license information.
 //
 
-use std::collections::HashMap;
 use std::io::Write;
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex, RwLock};
 
 use crate::db;
 
 use rusqlite;
 
-lazy_static! {
-    static ref CACHE: Arc<RwLock<HashMap<String, String>>> = Arc::new(RwLock::new(HashMap::new()));
-}
+pub fn handle(strm: &mut TcpStream) -> rusqlite::Result<()> {
+    let cache = db::CACHE.read().unwrap();
 
-pub fn handle(strm: &mut TcpStream, db: Arc<Mutex<db::Conn>>) -> rusqlite::Result<()> {
-    let db = db.lock().unwrap();
-    let db = &*db;
+    let mut posts = Vec::new();
 
-    let stmt = format!("SELECT * FROM posts");
-    let mut stmt = db.conn.prepare(&stmt).unwrap();
+    (*cache).iter().for_each(|(_, v)| {
+        posts.push(v.clone());
+    });
 
-    let posts = stmt.query_map(rusqlite::NO_PARAMS, |r| {
-        let auth: String = r.get(1)?;
-        let title: String = r.get(2)?;
-        let body: String = r.get(3)?;
-        let date: String = r.get(4)?;
-        let tags: String = r.get(5)?;
-
-        Ok(vec![
-            auth.into(),
-            title.into(),
-            body.into(),
-            date.into(),
-            tags.into(),
-        ])
-    })?;
-
-    let posts = posts.map(|r| r.unwrap()).collect::<Vec<Vec<String>>>();
     let posts = str_to_json(posts).bytes().collect::<Vec<u8>>();
 
     strm.write_all(&posts).unwrap();

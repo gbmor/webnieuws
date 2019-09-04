@@ -13,7 +13,6 @@ use ctrlc;
 use log;
 
 use std::net::TcpListener;
-use std::sync::{Arc, Mutex};
 use std::thread;
 
 mod client;
@@ -24,6 +23,7 @@ const LSTN_ADDR: &str = "0.0.0.0:9001";
 
 fn main() {
     logging::init();
+    db::load_cache();
 
     //more will have to be done here later
     ctrlc::set_handler(|| {
@@ -38,9 +38,6 @@ fn main() {
     // immediately respawned.
     loop {
         thread::spawn(move || {
-            let db = Arc::new(Mutex::new(db::Conn::open(db::PATH)));
-            log::info!("Database connection opened: {}", db::PATH);
-
             let lstnr = TcpListener::bind(LSTN_ADDR).unwrap();
             log::info!("Listening on {}", LSTN_ADDR);
 
@@ -48,8 +45,7 @@ fn main() {
                 match strm {
                     Ok(mut stream) => {
                         log::info!("New connection: {:?}", stream);
-                        let db = db.clone();
-                        go!(move || client::handle(&mut stream, db));
+                        go!(move || client::handle(&mut stream));
                     }
                     Err(err) => log::error!("{:?}", err),
                 }
