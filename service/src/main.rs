@@ -27,15 +27,12 @@ fn main() {
 
     // Handles SIGINT signals.
     // More will have to be done here later.
-    match ctrlc::set_handler(|| {
+    if let Err(err) = ctrlc::set_handler(|| {
         log::warn!("^C/SIGINT Caught ... ");
         std::process::exit(0);
     }) {
-        Ok(_) => {}
-        Err(err) => {
-            log::error!("Failed to set up SIGINT handler: {:?}", err);
-            std::process::exit(1);
-        }
+        log::error!("Failed to set up SIGINT handler: {:?}", err);
+        std::process::exit(1);
     }
 
     // Next we'll asynchronously handle incoming requests.
