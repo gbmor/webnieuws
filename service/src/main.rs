@@ -3,6 +3,9 @@
 // See LICENSE file for detailed license information.
 //
 
+#![feature(test)]
+extern crate test;
+
 #[macro_use]
 extern crate lazy_static;
 

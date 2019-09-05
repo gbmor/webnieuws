@@ -45,3 +45,53 @@ pub fn to_comm(json: serde_json::Value) -> user::Comm {
         _ => user::Comm::None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use test::Bencher;
+
+    #[ignore]
+    #[test]
+    fn test_json_to_comm() {
+        let rhs = user::Comm::Post(db::Entry {
+            id: 0,
+            author: "foo barrington".into(),
+            title: "foos guide to benchmarks".into(),
+            body: "do benchmarks k".into(),
+            date: "foo oclock".into(),
+            tags: vec!["benchmarks".into(), "testing".into(), "stuff".into()],
+        });
+        let json = r#"{
+                "kind": "post",
+                "cont": {
+                    "id": 0,
+                    "author": "foo barrington",
+                    "title": "foos guide to benchmarks",
+                    "body": "do benchmarks k",
+                    "date": "foo oclock",
+                    "tags": "benchmarks\ttesting\tstuff"
+                }
+            }"#;
+
+        let json = serde_json::from_str(json).unwrap();
+        let lhs = to_comm(json);
+
+        assert_eq!(lhs, rhs);
+    }
+
+    #[ignore]
+    #[bench]
+    fn simple_json_to_comm(b: &mut Bencher) {
+        b.iter(|| {
+            let json = r#"
+            {
+                "kind": "delete",
+                "cont": "0"
+            }"#;
+            let json = serde_json::from_str(json).unwrap();
+            to_comm(json);
+        });
+    }
+}
