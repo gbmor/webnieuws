@@ -9,13 +9,7 @@ use tokio::net::TcpStream;
 use crate::db;
 
 pub fn handle(strm: &mut TcpStream) {
-    let cache = match db::CACHE.read() {
-        Ok(val) => val,
-        Err(err) => {
-            log::error!("{:?}", err);
-            return;
-        }
-    };
+    let cache = db::CACHE.read();
 
     let mut posts = Vec::new();
     (*cache).iter().for_each(|(_, v)| {

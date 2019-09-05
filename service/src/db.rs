@@ -4,10 +4,12 @@
 //
 
 use log;
+use parking_lot::{Mutex, RwLock};
 use rusqlite;
 use serde::{Deserialize, Serialize};
+
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::Arc;
 use std::time;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
@@ -81,13 +83,7 @@ pub fn load_cache() {
     let start = std::time::Instant::now();
     log::info!("Loading cache of posts...");
 
-    let db = match CONNECTION.lock() {
-        Ok(val) => val,
-        Err(err) => {
-            log::error!("{:?}", err);
-            return;
-        }
-    };
+    let db = CONNECTION.lock();
     let db = &*db;
 
     let stmt = format!("SELECT * FROM posts");
@@ -119,13 +115,7 @@ pub fn load_cache() {
         .map(|r| r.unwrap())
         .collect::<Vec<Vec<String>>>();
 
-    let mut cache = match CACHE.write() {
-        Ok(val) => val,
-        Err(err) => {
-            log::error!("{:?}", err);
-            return;
-        }
-    };
+    let mut cache = CACHE.write();
 
     posts.iter().for_each(|post| {
         (*cache).entry(post[3].clone()).or_insert(post.clone());
