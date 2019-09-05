@@ -5,36 +5,21 @@
 
 use log;
 use rusqlite;
-use serde::ser::{Serialize, SerializeStruct, Serializer};
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time;
 
-#[derive(Debug, Clone)]
-struct Entry {
-    id: u32,
-    author: String,
-    title: String,
-    body: String,
-    date: String,
-    tags: Vec<String>,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Entry {
+    pub id: u32,
+    pub author: String,
+    pub title: String,
+    pub body: String,
+    pub date: String,
+    pub tags: Vec<String>,
 }
 
-impl Serialize for Entry {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut s = serializer.serialize_struct("Entry", 6)?;
-        s.serialize_field("id", &self.id)?;
-        s.serialize_field("author", &self.author)?;
-        s.serialize_field("title", &self.title)?;
-        s.serialize_field("body", &self.body)?;
-        s.serialize_field("date", &self.date)?;
-        s.serialize_field("tags", &self.tags)?;
-        s.end()
-    }
-}
 #[derive(Debug)]
 pub struct Conn {
     pub conn: rusqlite::Connection,
@@ -71,7 +56,17 @@ impl Conn {
         )",
             rusqlite::NO_PARAMS,
         )
-        .expect("Could not initialize DB");
+        .expect("Could not initialize posts table");
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY NOT NULL,
+                name TEXT NOT NULL,
+                pass TEXT NOT NULL
+        )",
+            rusqlite::NO_PARAMS,
+        )
+        .expect("Could not initialize users table");
 
         log::info!(
             "Database connection established in {}ms",
