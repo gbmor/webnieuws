@@ -13,7 +13,7 @@ pub fn to_comm(json: serde_json::Value) -> user::Comm {
         .chars()
         .map(|c| c.to_lowercase().to_string())
         .collect::<String>();
-    let id: u32 = json["cont"]["id"].as_str().unwrap().parse().unwrap();
+    let id = json["cont"]["id"].as_u64().unwrap();
     match &kind[..] {
         "post" => user::Comm::Post(db::Entry {
             id,
@@ -52,7 +52,6 @@ mod tests {
 
     use test::Bencher;
 
-    #[ignore]
     #[test]
     fn test_json_to_comm() {
         let rhs = user::Comm::Post(db::Entry {
@@ -75,20 +74,26 @@ mod tests {
                 }
             }"#;
 
-        let json = serde_json::from_str(json).unwrap();
+        let json = serde_json::from_str(json);
+        let json = json.unwrap();
         let lhs = to_comm(json);
 
         assert_eq!(lhs, rhs);
     }
 
-    #[ignore]
     #[bench]
-    fn simple_json_to_comm(b: &mut Bencher) {
+    fn bench_json_to_comm(b: &mut Bencher) {
         b.iter(|| {
-            let json = r#"
-            {
-                "kind": "delete",
-                "cont": "0"
+            let json = r#"{
+                "kind": "post",
+                "cont": {
+                    "id": 0,
+                    "author": "foo barrington",
+                    "title": "foos guide to benchmarks",
+                    "body": "do benchmarks k",
+                    "date": "foo oclock",
+                    "tags": "benchmarks\ttesting\tstuff"
+                }
             }"#;
             let json = serde_json::from_str(json).unwrap();
             to_comm(json);

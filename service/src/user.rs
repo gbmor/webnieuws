@@ -16,7 +16,7 @@ use crate::json;
 #[serde(tag = "kind", content = "cont")]
 pub enum Comm {
     Post(db::Entry),
-    Delete(u32),
+    Delete(u64),
     Update(db::Entry),
     None,
 }
@@ -62,6 +62,6 @@ fn update_post<'a>(_entry: &db::Entry) -> Result<&'a str, &'a str> {
     unimplemented!();
 }
 
-fn delete_post<'a>(_id: u32) -> Result<&'a str, &'a str> {
+fn delete_post<'a>(_id: u64) -> Result<&'a str, &'a str> {
     unimplemented!();
 }

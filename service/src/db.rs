@@ -15,7 +15,7 @@ use std::time;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Entry {
-    pub id: u32,
+    pub id: u64,
     pub author: String,
     pub title: String,
     pub body: String,
