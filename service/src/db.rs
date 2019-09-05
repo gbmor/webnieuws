@@ -3,6 +3,7 @@
 // See LICENSE file for detailed license information.
 //
 
+use eventual::Timer;
 use log;
 use parking_lot::{Mutex, RwLock};
 use rusqlite;
@@ -76,6 +77,14 @@ impl Conn {
         );
 
         Conn { conn }
+    }
+}
+
+pub fn cache_ticker() {
+    let timer = Timer::new();
+    let ticks = timer.interval_ms(150000).iter();
+    for _ in ticks {
+        load_cache();
     }
 }
 

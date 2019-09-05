@@ -33,6 +33,7 @@ lazy_static! {
 fn main() {
     logging::init();
     db::load_cache();
+    thread::spawn(db::cache_ticker);
 
     // Handles SIGINT signals.
     // More will have to be done here later.
