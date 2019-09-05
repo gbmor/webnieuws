@@ -11,6 +11,7 @@ use tokio_io::AsyncRead;
 
 use crate::db;
 use crate::json;
+use crate::post;
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(tag = "kind", content = "cont")]
@@ -22,6 +23,19 @@ pub enum Comm {
 }
 
 pub fn handle(strm: &mut TcpStream) {
+    let res = auth(strm);
+    match res {
+        Ok(_) => {}
+        Err(err) => {
+            log::error!("Auth failure: {}", err);
+            let msg = format!("{{ \"res\": 0, \"msg\":\"Auth Failure\" }}")
+                .bytes()
+                .collect::<Vec<u8>>();
+            strm.write_all(&msg).unwrap();
+            return;
+        }
+    }
+
     let (incoming, mut outgoing) = strm.split();
     let mut rdr = BufReader::new(incoming);
 
@@ -31,9 +45,9 @@ pub fn handle(strm: &mut TcpStream) {
     let comm_json: serde_json::Value = serde_json::from_str(input_str).unwrap();
 
     let result = match json::to_comm(comm_json) {
-        Comm::Post(entry) => add_post(&entry),
-        Comm::Delete(id) => delete_post(id),
-        Comm::Update(entry) => update_post(&entry),
+        Comm::Post(entry) => post::add(&entry),
+        Comm::Delete(id) => post::delete(id),
+        Comm::Update(entry) => post::update(&entry),
         _ => Err("Something went wrong"),
     };
 
@@ -54,14 +68,6 @@ pub fn handle(strm: &mut TcpStream) {
     }
 }
 
-fn add_post<'a>(_entry: &db::Entry) -> Result<&'a str, &'a str> {
-    unimplemented!();
-}
-
-fn update_post<'a>(_entry: &db::Entry) -> Result<&'a str, &'a str> {
-    unimplemented!();
-}
-
-fn delete_post<'a>(_id: u64) -> Result<&'a str, &'a str> {
+fn auth<'a>(_strm: &mut TcpStream) -> Result<&'a str, &'a str> {
     unimplemented!();
 }
