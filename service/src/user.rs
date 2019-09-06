@@ -3,10 +3,11 @@
 // See LICENSE file for detailed license information.
 //
 
+use std::io::{BufRead, BufReader, Write};
+
 use bcrypt;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::io::{BufRead, BufReader, Write};
 use tokio::net::TcpStream;
 use tokio_io::AsyncRead;
 use zeroize::Zeroize;
