@@ -6,7 +6,7 @@ where
         Ok(val) => val,
         Err(err) => {
             log::error!("{:?}", err);
-            panic!("{:?}", err);
+            std::process::exit(1);
         }
     }
 }
