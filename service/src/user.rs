@@ -3,11 +3,13 @@
 // See LICENSE file for detailed license information.
 //
 
+use bcrypt;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::io::{BufRead, BufReader, Write};
 use tokio::net::TcpStream;
 use tokio_io::AsyncRead;
+use zeroize::Zeroize;
 
 use crate::db;
 use crate::json;
@@ -25,9 +27,21 @@ pub enum Comm {
 pub fn handle(strm: &mut TcpStream) {
     let res = auth(strm);
     match res {
-        Ok(_) => {}
-        Err(err) => {
-            log::error!("Auth failure: {}", err);
+        Ok(val) => match val {
+            ("auth", user) => {
+                log::info!("Auth successful: {}", user);
+            }
+            ("fail", user) | (_, user) => {
+                log::warn!("Auth failure: {}", user);
+                let msg = format!("{{ \"res\":0, \"msg\":\"Auth failure\" }}")
+                    .bytes()
+                    .collect::<Vec<u8>>();
+                strm.write_all(&msg).unwrap();
+                return;
+            }
+        },
+        Err((_, user)) => {
+            log::error!("Auth failure: {}", user);
             let msg = format!("{{ \"res\": 0, \"msg\":\"Auth Failure\" }}")
                 .bytes()
                 .collect::<Vec<u8>>();
@@ -68,6 +82,50 @@ pub fn handle(strm: &mut TcpStream) {
     }
 }
 
-fn auth<'a>(_strm: &mut TcpStream) -> Result<&'a str, &'a str> {
-    unimplemented!();
+fn auth<'a>(strm: &mut TcpStream) -> Result<(&'a str, String), (&'a str, String)> {
+    let db = db::CONNECTION.lock();
+    let db = &*db;
+    let mut stmt = db
+        .conn
+        .prepare("SELECT pass FROM users WHERE name = :name")
+        .unwrap();
+
+    let (incoming, _) = strm.split();
+    let mut rdr = BufReader::new(incoming);
+    let mut in_json = String::new();
+    rdr.read_line(&mut in_json).unwrap();
+    let in_json = in_json.trim();
+    let in_json: serde_json::Value = serde_json::from_str(in_json).unwrap();
+
+    let mut pass = in_json["pass"]
+        .as_str()
+        .unwrap()
+        .bytes()
+        .collect::<Vec<u8>>();
+    let user = in_json["user"].as_str().unwrap().to_string();
+    let mut stored_pass = stmt
+        .query_row_named(&[(":name", &user)], |row| row.get::<usize, String>(1))
+        .unwrap();
+
+    let res = bcrypt::verify(&pass, &stored_pass);
+    match res {
+        Ok(val) => match val {
+            true => {
+                pass.zeroize();
+                stored_pass.zeroize();
+                return Ok(("auth", user.clone()));
+            }
+            false => {
+                pass.zeroize();
+                stored_pass.zeroize();
+                return Err(("fail", user.clone()));
+            }
+        },
+        Err(err) => {
+            pass.zeroize();
+            stored_pass.zeroize();
+            log::error!("{:?}", err);
+            return Err(("fail", user.clone()));
+        }
+    }
 }
