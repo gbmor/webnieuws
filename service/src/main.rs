@@ -24,7 +24,6 @@ mod db;
 mod error;
 mod json;
 mod logging;
-mod post;
 mod user;
 
 lazy_static! {
@@ -59,6 +58,6 @@ fn main() {
         .unwrap();
 
     rocket::custom(config)
-        .mount("/", routes![client::handle, user::handle])
+        .mount("/", routes![client::handle, user::handle, user::del_post])
         .launch();
 }

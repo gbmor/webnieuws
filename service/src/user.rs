@@ -48,3 +48,20 @@ pub fn handle(post: String) -> String {
         Err(_) => "500 Internal Server Error".into(),
     }
 }
+
+#[delete("/<id>")]
+pub fn del_post<'a>(id: u32) -> &'a str {
+    let db = db::CONNECTION.lock();
+    let db = &*db;
+
+    let stmt = format!("DELETE FROM posts WHERE id = :id");
+    let mut stmt = db.conn.prepare(&stmt).unwrap();
+
+    match stmt.execute_named(&[(":id", &id)]) {
+        Ok(_) => "200 OK",
+        Err(err) => {
+            log::error!("{:?}", err);
+            "500 Internal Server Error"
+        }
+    }
+}
