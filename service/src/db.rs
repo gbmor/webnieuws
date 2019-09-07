@@ -13,6 +13,8 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time;
 
+use crate::error;
+
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Entry {
     pub id: u64,
@@ -40,15 +42,14 @@ impl Conn {
     pub fn open(path: &str) -> Self {
         let start = time::Instant::now();
         log::info!("Connecting to database");
-        let conn = rusqlite::Connection::open_with_flags(
+        let conn = error::helper(rusqlite::Connection::open_with_flags(
             path,
             rusqlite::OpenFlags::SQLITE_OPEN_FULL_MUTEX
                 | rusqlite::OpenFlags::SQLITE_OPEN_CREATE
                 | rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE,
-        )
-        .expect("Could not connect to DB");
+        ));
 
-        conn.execute(
+        error::helper(conn.execute(
             "CREATE TABLE IF NOT EXISTS posts (
             id INTEGER PRIMARY KEY NOT NULL,
             author TEXT NOT NULL,
@@ -58,18 +59,16 @@ impl Conn {
             tags TEXT NOT NULL
         )",
             rusqlite::NO_PARAMS,
-        )
-        .expect("Could not initialize posts table");
+        ));
 
-        conn.execute(
+        error::helper(conn.execute(
             "CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY NOT NULL,
                 name TEXT NOT NULL,
                 pass TEXT NOT NULL
         )",
             rusqlite::NO_PARAMS,
-        )
-        .expect("Could not initialize users table");
+        ));
 
         log::info!(
             "Database connection established in {}ms",
@@ -104,30 +103,28 @@ pub fn load_cache() {
         }
     };
 
-    let posts = stmt
-        .query_map(rusqlite::NO_PARAMS, |r| {
-            let auth: String = r.get(1)?;
-            let title: String = r.get(2)?;
-            let body: String = r.get(3)?;
-            let date: String = r.get(4)?;
-            let tags: String = r.get(5)?;
+    let posts = error::helper(stmt.query_map(rusqlite::NO_PARAMS, |r| {
+        let auth: String = r.get(1)?;
+        let title: String = r.get(2)?;
+        let body: String = r.get(3)?;
+        let date: String = r.get(4)?;
+        let tags: String = r.get(5)?;
 
-            Ok(vec![
-                auth.into(),
-                title.into(),
-                body.into(),
-                date.into(),
-                tags.into(),
-            ])
-        })
-        .unwrap()
-        .map(|r| r.unwrap())
-        .collect::<Vec<Vec<String>>>();
+        Ok(vec![
+            auth.into(),
+            title.into(),
+            body.into(),
+            date.into(),
+            tags.into(),
+        ])
+    }))
+    .map(|r| error::helper(r))
+    .collect::<Vec<Vec<String>>>();
 
     let mut cache = CACHE.write();
 
     posts.iter().for_each(|post| {
-        (*cache).entry(post[3].clone()).or_insert(post.clone());
+        (*cache).entry(post[2].clone()).or_insert(post.clone());
     });
 
     log::info!(

@@ -7,6 +7,7 @@ use rusqlite;
 use serde::{Deserialize, Serialize};
 
 use crate::db;
+use crate::error;
 use crate::json;
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
@@ -20,14 +21,14 @@ pub enum Comm {
 
 #[post("/post", data = "<post>")]
 pub fn handle(post: String) -> String {
-    let json = serde_json::from_str(&post).unwrap();
+    let json = error::helper(serde_json::from_str(&post));
     let comm = json::to_comm(json);
 
     let db = db::CONNECTION.lock();
     let db = &*db;
 
     let stmt = format!("INSERT INTO posts (author, title, body, date, tags) VALUES (:author, :title, :body, :date, :tags)");
-    let mut stmt = db.conn.prepare(&stmt).unwrap();
+    let mut stmt = error::helper(db.conn.prepare(&stmt));
 
     let post = match comm {
         Comm::Post(val) => val,
