@@ -3,30 +3,19 @@
 // See LICENSE file for detailed license information.
 //
 
-use std::io::Write;
-
-use tokio::net::TcpStream;
-
 use crate::db;
+use rocket::response::content;
 
-pub fn handle(strm: &mut TcpStream) {
+#[get("/")]
+pub fn handle() -> content::Json<String> {
     let cache = db::CACHE.read();
 
     let mut posts = Vec::new();
     (*cache).iter().for_each(|(_, v)| {
         posts.push(v.clone());
     });
-    let posts = str_to_json(posts).bytes().collect::<Vec<u8>>();
-
-    let posts_displayed = if posts.len() < 10 {
-        &posts
-    } else {
-        &posts[posts.len() - 10..]
-    };
-
-    if let Err(err) = strm.write_all(&posts_displayed) {
-        log::error!("Write error on TCP sock: {:?}", err);
-    }
+    str_to_json(posts);
+    content::Json(format!("{{ \"kind\":\"test\" }}"))
 }
 
 fn str_to_json(data: Vec<Vec<String>>) -> String {

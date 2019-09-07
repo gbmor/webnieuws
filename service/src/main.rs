@@ -3,17 +3,19 @@
 // See LICENSE file for detailed license information.
 //
 
+#![feature(proc_macro_hygiene, decl_macro)]
 #![feature(test)]
 extern crate test;
-
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate rocket;
 
 use ctrlc;
 use log;
-use tokio::net::TcpListener;
-use tokio::prelude::*;
+use rocket::config::{Config, Environment};
 
+use std::net::TcpListener;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::thread;
 
@@ -26,9 +28,10 @@ mod post;
 mod user;
 
 lazy_static! {
-    static ref LSTN_ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 9001);
+    static ref LSTN_ADDR: SocketAddr =
+        SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 9001);
     static ref LSTN_ADDR_SBMT: SocketAddr =
-        SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 9002);
+        SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 9002);
 }
 
 fn main() {
@@ -53,38 +56,26 @@ fn main() {
     // but we will block on the requests
     // handle to continue serving posts.
     thread::spawn(listen_for_posts);
-    let reqs_handle = thread::spawn(listen_for_reqs);
-    reqs_handle.join().unwrap();
-}
 
-// Vomits out the posts when a
-// connection is made.
-fn listen_for_reqs() {
-    let lstnr = error::helper(TcpListener::bind(&LSTN_ADDR));
+    let config = Config::build(Environment::Staging)
+        .address("127.0.0.1")
+        .port(9001)
+        .workers(8)
+        .unwrap();
 
-    let srvr = lstnr
-        .incoming()
-        .for_each(|mut strm| {
-            client::handle(&mut strm);
-            Ok(())
-        })
-        .map_err(|err| log::error!("{:?}", err));
-
-    log::info!("Listening on {}", LSTN_ADDR.to_string());
-    tokio::run(srvr);
+    rocket::custom(config)
+        .mount("/", routes![client::handle])
+        .launch();
 }
 
 // Accepts posts, updates, deletes.
 fn listen_for_posts() {
     let lstnr = error::helper(TcpListener::bind(&*LSTN_ADDR_SBMT));
-    let srvr = lstnr
-        .incoming()
-        .for_each(|mut strm| {
-            user::handle(&mut strm);
-            Ok(())
-        })
-        .map_err(|err| log::error!("{:?}", err));
 
     log::info!("Listening on {}", LSTN_ADDR_SBMT.to_string());
-    tokio::run(srvr);
+
+    lstnr.incoming().for_each(|conn| match conn {
+        Ok(mut strm) => user::handle(&mut strm),
+        Err(err) => log::error!("{:?}", err),
+    });
 }

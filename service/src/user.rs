@@ -4,12 +4,11 @@
 //
 
 use std::io::{BufRead, BufReader, Write};
+use std::net::TcpStream;
 
 use bcrypt;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use tokio::net::TcpStream;
-use tokio_io::AsyncRead;
 use zeroize::Zeroize;
 
 use crate::db;
@@ -51,8 +50,8 @@ pub fn handle(strm: &mut TcpStream) {
         }
     }
 
-    let (incoming, mut outgoing) = strm.split();
-    let mut rdr = BufReader::new(incoming);
+    let rdr = strm.try_clone().unwrap();
+    let mut rdr = BufReader::new(rdr);
 
     let mut input_str = String::new();
     rdr.read_line(&mut input_str).unwrap();
@@ -71,13 +70,13 @@ pub fn handle(strm: &mut TcpStream) {
             let msg_b = format!("{{ \"res\":1, \"msg\":\"{}\" }}", msg)
                 .bytes()
                 .collect::<Vec<u8>>();
-            outgoing.write_all(&msg_b).unwrap();
+            strm.write_all(&msg_b).unwrap();
         }
         Err(msg) => {
             let msg_b = format!("{{ \"res\":0, \"msg\":\"{}\" }}", msg)
                 .bytes()
                 .collect::<Vec<u8>>();
-            outgoing.write_all(&msg_b).unwrap();
+            strm.write_all(&msg_b).unwrap();
             log::error!("{}", msg);
         }
     }
@@ -91,7 +90,7 @@ fn auth<'a>(strm: &mut TcpStream) -> Result<(&'a str, String), (&'a str, String)
         .prepare("SELECT pass FROM users WHERE name = :name")
         .unwrap();
 
-    let (incoming, _) = strm.split();
+    let incoming = strm.try_clone().unwrap();
     let mut rdr = BufReader::new(incoming);
     let mut in_json = String::new();
     rdr.read_line(&mut in_json).unwrap();
