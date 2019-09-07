@@ -52,11 +52,6 @@ fn main() {
     // Next we'll asynchronously handle incoming requests.
     log::info!("Starting up ...");
 
-    // The thread to accept posts can die,
-    // but we will block on the requests
-    // handle to continue serving posts.
-    thread::spawn(listen_for_posts);
-
     let config = Config::build(Environment::Staging)
         .address("127.0.0.1")
         .port(9001)
@@ -64,18 +59,6 @@ fn main() {
         .unwrap();
 
     rocket::custom(config)
-        .mount("/", routes![client::handle])
+        .mount("/", routes![client::handle, user::handle])
         .launch();
-}
-
-// Accepts posts, updates, deletes.
-fn listen_for_posts() {
-    let lstnr = error::helper(TcpListener::bind(&*LSTN_ADDR_SBMT));
-
-    log::info!("Listening on {}", LSTN_ADDR_SBMT.to_string());
-
-    lstnr.incoming().for_each(|conn| match conn {
-        Ok(mut strm) => user::handle(&mut strm),
-        Err(err) => log::error!("{:?}", err),
-    });
 }
