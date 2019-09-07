@@ -3,6 +3,8 @@
 // See LICENSE file for detailed license information.
 //
 
+use std::thread;
+
 use serde::{Deserialize, Serialize};
 
 use crate::db;
@@ -18,7 +20,7 @@ pub enum Comm {
     None,
 }
 
-#[post("/post", data = "<post>")]
+#[post("/", data = "<post>")]
 pub fn handle(post: String) -> String {
     let json = error::helper(serde_json::from_str(&post));
     let comm = json::to_comm(json);
@@ -42,7 +44,7 @@ pub fn handle(post: String) -> String {
         (":tags", &tags),
     ]) {
         Ok(_) => {
-            db::load_cache();
+            thread::spawn(db::load_cache);
             return "200 OK".into();
         }
         Err(_) => "500 Internal Server Error".into(),

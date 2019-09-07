@@ -13,7 +13,11 @@ pub fn to_comm(json: serde_json::Value) -> user::Comm {
         .chars()
         .map(|c| c.to_lowercase().to_string())
         .collect::<String>();
-    let id = json["cont"]["id"].as_u64().unwrap();
+    let id = if let Some(val) = json["cont"]["id"].as_u64() {
+        val
+    } else {
+        0
+    };
     match &kind[..] {
         "post" => user::Comm::Post(db::Entry {
             id,

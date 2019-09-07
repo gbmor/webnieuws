@@ -125,6 +125,8 @@ pub fn load_cache() {
     .collect::<Vec<Vec<String>>>();
 
     let mut cache = CACHE.write();
+    // Clear it out first
+    *cache = BTreeMap::new();
 
     posts.iter().for_each(|post| {
         (*cache).entry(post[2].clone()).or_insert(post.clone());
