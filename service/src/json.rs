@@ -24,7 +24,7 @@ pub fn to_comm(json: serde_json::Value) -> user::Comm {
             tags: json["cont"]["tags"]
                 .as_str()
                 .unwrap()
-                .split("\t")
+                .split(" ")
                 .map(|c| c.to_string())
                 .collect::<Vec<String>>(),
         }),
@@ -38,7 +38,7 @@ pub fn to_comm(json: serde_json::Value) -> user::Comm {
             tags: json["cont"]["tags"]
                 .as_str()
                 .unwrap()
-                .split("\t")
+                .split(" ")
                 .map(|c| c.to_string())
                 .collect::<Vec<String>>(),
         }),
@@ -70,7 +70,7 @@ mod tests {
                     "title": "foos guide to benchmarks",
                     "body": "do benchmarks k",
                     "date": "foo oclock",
-                    "tags": "benchmarks\ttesting\tstuff"
+                    "tags": "benchmarks testing stuff"
                 }
             }"#;
 
@@ -92,7 +92,7 @@ mod tests {
                     "title": "foos guide to benchmarks",
                     "body": "do benchmarks k",
                     "date": "foo oclock",
-                    "tags": "benchmarks\ttesting\tstuff"
+                    "tags": "benchmarks testing stuff"
                 }
             }"#;
             let json = serde_json::from_str(json).unwrap();

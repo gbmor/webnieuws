@@ -14,8 +14,7 @@ pub fn handle() -> content::Json<String> {
     (*cache).iter().for_each(|(_, v)| {
         posts.push(v.clone());
     });
-    str_to_json(posts);
-    content::Json(format!("{{ \"kind\":\"test\" }}"))
+    content::Json(str_to_json(posts))
 }
 
 fn str_to_json(data: Vec<Vec<String>>) -> String {
