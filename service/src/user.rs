@@ -18,20 +18,20 @@ pub enum Comm {
     None,
 }
 
-#[post("/post/<post>")]
-pub fn handle<'a>(post: String) -> &'a str {
+#[post("/post", data = "<post>")]
+pub fn handle(post: String) -> String {
     let json = serde_json::from_str(&post).unwrap();
     let comm = json::to_comm(json);
 
     let db = db::CONNECTION.lock();
     let db = &*db;
 
-    let stmt = format!("INSERT INTO posts (author, title, body, date, tags) VALUES (:author, :title, :body, :date, :tags");
+    let stmt = format!("INSERT INTO posts (author, title, body, date, tags) VALUES (:author, :title, :body, :date, :tags)");
     let mut stmt = db.conn.prepare(&stmt).unwrap();
 
     let post = match comm {
         Comm::Post(val) => val,
-        _ => return "400 Bad Request",
+        _ => return "400 Bad Request".into(),
     };
     let tags = post.tags.join(" ");
     match stmt.execute_named(&[
@@ -41,7 +41,10 @@ pub fn handle<'a>(post: String) -> &'a str {
         (":date", &post.date),
         (":tags", &tags),
     ]) {
-        Ok(_) => "200 OK",
-        Err(_) => "500 Internal Server Error",
+        Ok(_) => {
+            db::load_cache();
+            return "200 OK".into();
+        }
+        Err(_) => "500 Internal Server Error".into(),
     }
 }
