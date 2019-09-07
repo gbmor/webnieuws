@@ -3,19 +3,19 @@
 // See LICENSE file for detailed license information.
 //
 
-#![feature(proc_macro_hygiene, decl_macro)]
-#![feature(test)]
+#![feature(proc_macro_hygiene, decl_macro, test)]
 extern crate test;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate rocket;
+#[macro_use]
+extern crate crossbeam_channel;
 
 use ctrlc;
 use log;
 use rocket::config::{Config, Environment};
 
-use std::net::TcpListener;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::thread;
 

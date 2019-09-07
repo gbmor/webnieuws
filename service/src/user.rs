@@ -3,7 +3,6 @@
 // See LICENSE file for detailed license information.
 //
 
-use rusqlite;
 use serde::{Deserialize, Serialize};
 
 use crate::db;

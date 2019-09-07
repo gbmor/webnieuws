@@ -3,7 +3,7 @@
 // See LICENSE file for detailed license information.
 //
 
-use eventual::Timer;
+use crossbeam_channel;
 use log;
 use parking_lot::{Mutex, RwLock};
 use rusqlite;
@@ -79,14 +79,17 @@ impl Conn {
     }
 }
 
+// Periodically refreshes the post cache.
 pub fn cache_ticker() {
-    let timer = Timer::new();
-    let ticks = timer.interval_ms(150000).iter();
-    for _ in ticks {
-        load_cache();
+    let ticker = crossbeam_channel::tick(time::Duration::from_millis(60000));
+    loop {
+        select! {
+            recv(ticker) -> _ => load_cache(),
+        }
     }
 }
 
+// Loads the posts from sqlite to memory.
 pub fn load_cache() {
     let start = std::time::Instant::now();
     log::info!("Loading cache of posts...");
