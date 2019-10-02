@@ -7,19 +7,17 @@ use crate::db;
 use crate::user;
 
 pub fn from_str(data: Vec<Vec<String>>) -> String {
-    let mut out = String::from("{\n");
+    let mut out = String::from("{ ");
     data.iter().enumerate().for_each(|(i, e)| {
         out.push_str(&format!(
-            "\n\t\"{}\": {{\n\t\t\"author\": \"{}\",\n\t\t\"body\": \"{}\",\n\t\t\"date\": \"{}\",\n\t\t\"tags\": \"{}\"\n\t}}",
+            "\"{}\": {{ \"author\": \"{}\", \"body\": \"{}\", \"date\": \"{}\", \"tags\": \"{}\" }}",
             e[1], e[0], e[2], e[3], e[4]
         ));
-        if data.len() > 1 && i < data.len()-1 {
+        if data.len() > 1 && i < data.len() - 1 {
             out.push_str(",\n");
-        } else {
-            out.push_str("\n");
         }
     });
-    out.push_str("}");
+    out.push_str(" }");
     out
 }
 
@@ -63,7 +61,7 @@ pub fn to_comm(json: serde_json::Value) -> user::Comm {
                 .map(|c| c.to_string())
                 .collect::<Vec<String>>(),
         }),
-        _ => user::Comm::None,
+        _ => user::Comm::Empty,
     }
 }
 
@@ -73,10 +71,9 @@ mod tests {
 
     use test::Bencher;
 
-    #[ignore]
     #[test]
     fn test_str_to_json() {
-        let lhs = format!("{{ \"author\": \"test\", \"title\": \"test\", \"body\": \"test\", \"date\": \"test\", \"tags\": \"test\" }}");
+        let lhs = format!("{{ \"test\": {{ \"author\": \"test\", \"body\": \"test\", \"date\": \"test\", \"tags\": \"test\" }} }}");
 
         let rhs: Vec<String> = vec![
             "test".into(),
@@ -89,6 +86,19 @@ mod tests {
         let rhs = from_str(rhs);
 
         assert_eq!(lhs, rhs);
+    }
+
+    #[bench]
+    fn json_from_str(b: &mut Bencher) {
+        let rhs: Vec<String> = vec![
+            "test".into(),
+            "test".into(),
+            "test".into(),
+            "test".into(),
+            "test".into(),
+        ];
+        let rhs = vec![rhs];
+        b.iter(|| from_str(rhs.clone()));
     }
 
     #[test]

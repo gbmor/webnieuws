@@ -17,7 +17,7 @@ pub enum Comm {
     Post(db::Entry),
     Delete(u64),
     Update(db::Entry),
-    None,
+    Empty,
 }
 
 #[post("/", data = "<post>")]
